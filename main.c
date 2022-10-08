@@ -63,6 +63,18 @@ ISR( TIMER0_COMPA_vect ) {
 #define BUTTON_MODE_LOW		BUTTON_MODE_PORT &= ~BUTTON_MODE
 #define BUTTON_MODE_STATE	(BUTTON_MODE_PIN & BUTTON_MODE)
 
+button_t mode;
+
+void smol() {
+	PORTD |= (1<<PD7)|(1<<PD6)|(1<<PD5);
+}
+
+void bigi() {
+	PORTD &= ~(1<<PD7);
+	PORTD &= ~(1<<PD6);
+	PORTD &= ~(1<<PD5);
+}
+
 int main() {
 
 	//TIMER FOR MULTIPLEXING
@@ -72,6 +84,12 @@ int main() {
 	TIMSK0 |= (1<<OCIE0A);
 
 	key_init();
+
+	mode.KPIN = &PIND;
+	mode.key_mask = BUTTON_MODE;
+	mode.wait_time_s = 3;
+	mode.kfun1 = smol;
+	mode.kfun2 = bigi;
 
 	//DOTS
 	DDRD |= (1<<PD5)|(1<<PD6)|(1<<PD7);
@@ -96,9 +114,11 @@ int main() {
 
 	sei();
 	while( 1 ) {
-		set_time( time );
-		time.min++;
+		//set_time( time );
+		//time.min++;
 		tick = (tick+1)%2;
+
+		key_press(&mode);
 
 		_delay_ms(1000);
 	}
