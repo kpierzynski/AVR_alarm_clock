@@ -2,6 +2,8 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
+#include "button.h"
+
 #define LEN 16
 uint8_t nums[LEN] = {	0b00100000,	//0
 			0b10111010,	//1
@@ -51,18 +53,14 @@ ISR( TIMER0_COMPA_vect ) {
 	digit = (digit+1) % DISPLAY_LEN;
 }
 
-ISR( TIMER2_COMPA_vect ) {
-	
-}
-
 #define BUTTON_MODE		(1<<PD2);
 #define BUTTON_MODE_DDR		DDRD
 #define BUTTON_MODE_PORT	PORTD
 #define BUTTON_MODE_PIN		PIND
-#define BUTTON_MODE_IN		BUTTON_DDR &= ~BUTTON_MODE
-#define BUTTON_MODE_OUT		BUTTON_DDR |= BUTTON_MODE
-#define BUTTON_MODE_HIGH	BUTTON_PORT |= BUTTON_MODE
-#define BUTTON_MODE_LOW		BUTTON_PORT &= ~BUTTON_MODE
+#define BUTTON_MODE_IN		BUTTON_MODE_DDR &= ~BUTTON_MODE
+#define BUTTON_MODE_OUT		BUTTON_MODE_DDR |= BUTTON_MODE
+#define BUTTON_MODE_HIGH	BUTTON_MODE_PORT |= BUTTON_MODE
+#define BUTTON_MODE_LOW		BUTTON_MODE_PORT &= ~BUTTON_MODE
 #define BUTTON_MODE_STATE	(BUTTON_MODE_PIN & BUTTON_MODE)
 
 int main() {
@@ -73,11 +71,7 @@ int main() {
 	OCR0A = 32;
 	TIMSK0 |= (1<<OCIE0A);
 
-	//TIMER 10ms
-	TCCR2A |= (1<<WGM21);				//CTC
-	TCCR2B |= (1<<CS22)|(1<<CS21)|(1<<CS20);	//1024 preskaler
-	OCR2A = 77;
-	TIMSK2 |= (1<<OCIE2A);
+	key_init();
 
 	//DOTS
 	DDRD |= (1<<PD5)|(1<<PD6)|(1<<PD7);
@@ -105,10 +99,6 @@ int main() {
 		set_time( time );
 		time.min++;
 		tick = (tick+1)%2;
-
-		if( !BUTTON_MODE_STATE ) {
-
-		}
 
 		_delay_ms(1000);
 	}

@@ -2,6 +2,7 @@
 #define __BUTTON_H_
 
 #include <avr/io.h>
+#include <avr/interrupt.h>
 
 typedef struct {
 	volatile uint8_t *KPIN;
@@ -13,6 +14,7 @@ typedef struct {
 	uint8_t flag;
 } button_t;
 
-void key_press( button_t btn );
+void key_press( button_t * btn );
+void key_init();
 
 #endif
