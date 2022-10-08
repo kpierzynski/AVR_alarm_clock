@@ -46,10 +46,24 @@ ISR( TIMER0_COMPA_vect ) {
 	PORTC = (1<<digit);
 	PORTB = ( nums[ display[digit] ] | tick);
 
-	PORTD = (PORTD & 0b00011111) | ((PIND & 0b00011100)<<3);
+	//PORTD = (PORTD & 0b00011111) | ((PIND & 0b00011100)<<3);
 
 	digit = (digit+1) % DISPLAY_LEN;
 }
+
+ISR( TIMER2_COMPA_vect ) {
+	
+}
+
+#define BUTTON_MODE		(1<<PD2);
+#define BUTTON_MODE_DDR		DDRD
+#define BUTTON_MODE_PORT	PORTD
+#define BUTTON_MODE_PIN		PIND
+#define BUTTON_MODE_IN		BUTTON_DDR &= ~BUTTON_MODE
+#define BUTTON_MODE_OUT		BUTTON_DDR |= BUTTON_MODE
+#define BUTTON_MODE_HIGH	BUTTON_PORT |= BUTTON_MODE
+#define BUTTON_MODE_LOW		BUTTON_PORT &= ~BUTTON_MODE
+#define BUTTON_MODE_STATE	(BUTTON_MODE_PIN & BUTTON_MODE)
 
 int main() {
 
@@ -59,6 +73,12 @@ int main() {
 	OCR0A = 32;
 	TIMSK0 |= (1<<OCIE0A);
 
+	//TIMER 10ms
+	TCCR2A |= (1<<WGM21);				//CTC
+	TCCR2B |= (1<<CS22)|(1<<CS21)|(1<<CS20);	//1024 preskaler
+	OCR2A = 77;
+	TIMSK2 |= (1<<OCIE2A);
+
 	//DOTS
 	DDRD |= (1<<PD5)|(1<<PD6)|(1<<PD7);
 
@@ -67,6 +87,9 @@ int main() {
 	DDRD &= ~(1<<PD3);
 	DDRD &= ~(1<<PD4);
 	PORTD |= (1<<PD2)|(1<<PD3)|(1<<PD4);
+
+	BUTTON_MODE_IN;
+	BUTTON_MODE_HIGH;
 
 	//NUMBER DATA PORT DIRECTION (use whole port. PB0 for dots)
 	DDRB = 0xFF;
@@ -83,6 +106,9 @@ int main() {
 		time.min++;
 		tick = (tick+1)%2;
 
+		if( !BUTTON_MODE_STATE ) {
+
+		}
 
 		_delay_ms(1000);
 	}
