@@ -1,6 +1,6 @@
 #include "button.h"
 
-volatile uint16_t Timer1;
+volatile uint16_t Timer1, Timer2, Timer3;
 
 void key_init() {
 	//TIMER 10ms
@@ -15,6 +15,12 @@ ISR( TIMER2_COMPA_vect ) {
 
 	n = Timer1;
 	if( n ) Timer1 = --n;
+
+	n = Timer2;
+	if( n ) Timer2 = --n;
+
+	n = Timer3;
+	if( n ) Timer3 = --n;
 }
 
 void key_press( button_t * btn ) {

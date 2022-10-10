@@ -5,7 +5,7 @@ OBJCOPY=avr-objcopy
 CFLAGS=-Wall -g -Os -mmcu=${MCU} -DF_CPU=${F_CPU} -I.
 AVRDUDE_FLAGS=-B 8
 TARGET=main
-SRCS=main.c button.c
+SRCS=main.c button.c i2c.c clock.c
 
 all:
 	${CC} ${CFLAGS} -o ${TARGET}.bin ${SRCS}

@@ -1,10 +1,13 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
+#include <stddef.h>
 
+#include "common.h"
 #include "button.h"
+#include "clock.h"
 
-#define LEN 16
+#define LEN 18
 uint8_t nums[LEN] = {	0b00100000,	//0
 			0b10111010,	//1
 			0b01001000,	//2
@@ -21,58 +24,61 @@ uint8_t nums[LEN] = {	0b00100000,	//0
 			0b00001010,	//D
 			0b01000100,	//E
 			0b11000100,	//F
+			0b11011110,	//-		0x10
+			0b11111110	//Empty		0x11
 };
 
 #define DISPLAY_LEN 4
-volatile uint8_t display[DISPLAY_LEN] = {0,0,0,0};
+#define DISPLAY_BUFFS 4
+
+#define NORMAL 0
+#define ALARM1 1
+#define ALARM2 2
+#define ALARM3 3
+#define MODE_LEN 4
+
+volatile uint8_t buffers[DISPLAY_BUFFS][DISPLAY_LEN] = {
+	{ 1, 2, 0, 0 },
+
+	{ 0xA, 1, 0x11, 0x11 },
+	{ 0xA, 2, 0x11, 0x11 },
+	{ 0xA, 3, 0x11, 0x11 },
+};
+
+uint8_t mode = NORMAL;
+volatile uint8_t * display = buffers[NORMAL];
+
 volatile uint8_t tick = 0;
-
-typedef struct {
-	uint8_t hour;
-	uint8_t min;
-} time_t;
-
 time_t time;
-
-void set_time( time_t time ) {
-	display[0] = time.hour/10;
-	display[1] = time.hour%10;
-
-	display[2] = time.min/10;
-	display[3] = time.min%10;
-}
 
 ISR( TIMER0_COMPA_vect ) {
 	static uint8_t digit = 0;
 
-	PORTC = (1<<digit);
+	PORTC = (PORTC & 0b11110000) | (1<<digit);
 	PORTB = ( nums[ display[digit] ] | tick);
-
-	//PORTD = (PORTD & 0b00011111) | ((PIND & 0b00011100)<<3);
 
 	digit = (digit+1) % DISPLAY_LEN;
 }
 
-#define BUTTON_MODE		(1<<PD2);
-#define BUTTON_MODE_DDR		DDRD
-#define BUTTON_MODE_PORT	PORTD
-#define BUTTON_MODE_PIN		PIND
-#define BUTTON_MODE_IN		BUTTON_MODE_DDR &= ~BUTTON_MODE
-#define BUTTON_MODE_OUT		BUTTON_MODE_DDR |= BUTTON_MODE
-#define BUTTON_MODE_HIGH	BUTTON_MODE_PORT |= BUTTON_MODE
-#define BUTTON_MODE_LOW		BUTTON_MODE_PORT &= ~BUTTON_MODE
-#define BUTTON_MODE_STATE	(BUTTON_MODE_PIN & BUTTON_MODE)
-
-button_t mode;
-
-void smol() {
-	PORTD |= (1<<PD7)|(1<<PD6)|(1<<PD5);
+void next_mode() {
+	mode = (mode+1)%MODE_LEN;
+	display = buffers[mode];
 }
 
-void bigi() {
-	PORTD &= ~(1<<PD7);
-	PORTD &= ~(1<<PD6);
-	PORTD &= ~(1<<PD5);
+void up_tick() {
+}
+
+void down_tick() {
+}
+
+void clock_tick() {
+	tick ^= 1;
+
+	clock_time( &time );
+	buffers[NORMAL][0] = time.hour/10;
+	buffers[NORMAL][1] = time.hour%10;
+	buffers[NORMAL][2] = time.min/10;
+	buffers[NORMAL][3] = time.min%10;
 }
 
 int main() {
@@ -83,25 +89,27 @@ int main() {
 	OCR0A = 32;
 	TIMSK0 |= (1<<OCIE0A);
 
+	//BUTTONS
 	key_init();
+	button_t mode = { &BTN_MODE_PIN, BTN_MODE, 2, next_mode, next_mode };
+	button_t up = { &BTN_UP_PIN, BTN_UP, 2, up_tick, up_tick };
+	button_t down = { &BTN_DOWN_PIN, BTN_DOWN, 2, down_tick, down_tick };
 
-	mode.KPIN = &PIND;
-	mode.key_mask = BUTTON_MODE;
-	mode.wait_time_s = 3;
-	mode.kfun1 = smol;
-	mode.kfun2 = bigi;
+	BTN_MODE_IN;
+	BTN_MODE_HIGH;
+
+	BTN_UP_IN;
+	BTN_UP_HIGH;
+
+	BTN_DOWN_IN;
+	BTN_DOWN_HIGH;
+
+	//CLOCK
+	clock_init();
+	register_clock_out_1hz( clock_tick );
 
 	//DOTS
 	DDRD |= (1<<PD5)|(1<<PD6)|(1<<PD7);
-
-	//BUTTONS
-	DDRD &= ~(1<<PD2);
-	DDRD &= ~(1<<PD3);
-	DDRD &= ~(1<<PD4);
-	PORTD |= (1<<PD2)|(1<<PD3)|(1<<PD4);
-
-	BUTTON_MODE_IN;
-	BUTTON_MODE_HIGH;
 
 	//NUMBER DATA PORT DIRECTION (use whole port. PB0 for dots)
 	DDRB = 0xFF;
@@ -109,18 +117,17 @@ int main() {
 	//PLEXER TRANSISTOR DIRECTION
 	DDRC |= (1<<PC0)|(1<<PC1)|(1<<PC2)|(1<<PC3);
 
-	time.hour = 12;
-	time.min = 39;
-
 	sei();
 	while( 1 ) {
-		//set_time( time );
-		//time.min++;
-		tick = (tick+1)%2;
-
 		key_press(&mode);
+		key_press(&up);
+		key_press(&down);
 
-		_delay_ms(1000);
+		if( !Timer2 ) {
+			Timer2 = 100;
+		}
+
+
 	}
 
 	return 0;
