@@ -52,7 +52,7 @@ void update_main_screen() {
 
 void update_alarm_screen_from_index( uint8_t i ) {
 	alarm_screen[0] = 0xA;
-	alarm_screen[1] = i;
+	alarm_screen[1] = i+1;		//+1 bo niby nie ma czegos takiego jak alarm 0...
 	alarm_screen[2] = NUM_EMPTY;
 	alarm_screen[3] = NUM_EMPTY;
 }
@@ -65,12 +65,6 @@ void update_alarm_screen_from_time( time_t t ) {
 }
 
 volatile uint8_t tick = 0;
-void clock_tick() {
-	tick ^= 1;
-
-	clock_time( &time );
-}
-
 volatile uint8_t blink_mask;
 volatile uint8_t blink;
 ISR( TIMER0_COMPA_vect ) {
@@ -83,6 +77,30 @@ ISR( TIMER0_COMPA_vect ) {
 	else PORTB = ( nums[ display[digit] ] | tick );
 
 	digit = (digit+1) % DISPLAY_LEN;
+}
+
+uint8_t time_compare(time_t a, time_t b) {
+	return ( a.hour == b.hour && a.min == b.min );
+}
+
+void check_alarms() {
+	for( uint8_t i = 0; i < ALARM_LEN; i++ ) {
+		alarm_t * alarm = &alarms[i];
+
+		if( !alarm->armed ) continue;
+
+		if( time_compare( alarm->time, time ) ) {
+			blink_mask = 0b1111;
+			//One of alarms fired.
+		}
+	}
+}
+
+void clock_tick() {
+	tick ^= 1;
+
+	clock_time( &time );
+	check_alarms();
 }
 
 void next_mode() {
@@ -141,20 +159,6 @@ void up_handler() {
 
 void down_handler() {
 	handle_change_on_alarm(-1);
-}
-
-uint8_t time_compare(time_t a, time_t b) {
-	return ( a.hour == b.hour && a.min == b.min );
-}
-
-void check_alarms() {
-	for( uint8_t i = 0; i < ALARM_LEN; i++ ) {
-		alarm_t * alarm = &alarms[i];
-
-		if( !alarm->armed ) continue;
-
-		if( 
-	}
 }
 
 int main() {

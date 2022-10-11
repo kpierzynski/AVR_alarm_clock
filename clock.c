@@ -1,5 +1,6 @@
 #include "clock.h"
 
+volatile uint8_t call_callback;
 void (*clock_out_1hz_callback)(void);
 
 void register_clock_out_1hz( void (*callback)(void) ) {
@@ -59,6 +60,13 @@ void clock_time( time_t * time ) {
 	time->hour = hr;
 }
 
+void clock_event() {
+	if( call_callback ) {
+		if( clock_out_1hz_callback ) clock_out_1hz_callback();
+		call_callback = 0;
+	}
+}
+
 ISR( INT0_vect ) {
-	if( clock_out_1hz_callback ) clock_out_1hz_callback();
+	call_callback = 1;
 }

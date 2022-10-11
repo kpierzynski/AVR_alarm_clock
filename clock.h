@@ -28,5 +28,6 @@ void register_clock_out_1hz( void (*callback)(void) );
 void clock_init();
 
 void clock_time( time_t * time );
+void clock_event();
 
 #endif
