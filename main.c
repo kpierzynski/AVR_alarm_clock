@@ -1,37 +1,40 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
+#include <avr/pgmspace.h>
 #include <stddef.h>
 
 #include "common.h"
 #include "button.h"
 #include "clock.h"
 
-#define LEN 18
-uint8_t nums[LEN] = {	0b00100000,	//0
-			0b10111010,	//1
-			0b01001000,	//2
-			0b00011000,	//3
-			0b10010010,	//4
-			0b00010100,	//5
-			0b00000100,	//6
-			0b10111000,	//7
-			0b00000000,	//8
-			0b00010000,	//9
-			0b10000000,	//A
-			0b00000110,	//B
-			0b01100100,	//C
-			0b00001010,	//D
-			0b01000100,	//E
-			0b11000100,	//F
-			0b11011110,	//-		0x10
-			0b11111110	//Empty		0x11
+#define NUM_LEN 18
+#define NUM_DASH	0x10
+#define NUM_EMPTY	0x11
+const uint8_t nums[NUM_LEN] = {
+	0b00100000,	//0
+	0b10111010,	//1
+	0b01001000,	//2
+	0b00011000,	//3
+	0b10010010,	//4
+	0b00010100,	//5
+	0b00000100,	//6
+	0b10111000,	//7
+	0b00000000,	//8
+	0b00010000,	//9
+	0b10000000,	//A
+	0b00000110,	//B
+	0b01100100,	//C
+	0b00001010,	//D
+	0b01000100,	//E
+	0b11000100,	//F
+	0b11011110,	//-		0x10
+	0b11111110	//Empty		0x11
 };
 
 #define DISPLAY_LEN	4
-volatile uint8_t main_screen[DISPLAY_LEN];
-volatile uint8_t alarm_screen[DISPLAY_LEN];
-
+uint8_t main_screen[DISPLAY_LEN];
+uint8_t alarm_screen[DISPLAY_LEN];
 volatile uint8_t * display = main_screen;
 
 #define ALARM_LEN	3
@@ -40,15 +43,32 @@ time_t time;
 
 uint8_t mode;
 
+void update_main_screen() {
+	main_screen[0] = time.hour/10;
+	main_screen[1] = time.hour%10;
+	main_screen[2] = time.min/10;
+	main_screen[3] = time.min%10;
+}
+
+void update_alarm_screen_from_index( uint8_t i ) {
+	alarm_screen[0] = 0xA;
+	alarm_screen[1] = i;
+	alarm_screen[2] = NUM_EMPTY;
+	alarm_screen[3] = NUM_EMPTY;
+}
+
+void update_alarm_screen_from_time( time_t t ) {
+	alarm_screen[0] = time.hour/10;
+	alarm_screen[1] = time.hour%10;
+	alarm_screen[2] = time.min/10;
+	alarm_screen[3] = time.min%10;
+}
+
 volatile uint8_t tick = 0;
 void clock_tick() {
 	tick ^= 1;
 
 	clock_time( &time );
-	main_screen[0] = time.hour/10;
-	main_screen[1] = time.hour%10;
-	main_screen[2] = time.min/10;
-	main_screen[3] = time.min%10;
 }
 
 volatile uint8_t blink_mask;
@@ -59,7 +79,7 @@ ISR( TIMER0_COMPA_vect ) {
 	PORTC = (PORTC & 0b11110000) | (1<<digit);
 
 	if( blink && (blink_mask & (1<<digit)) )
-		PORTB = ( nums[ 0x11 ] | tick );
+		PORTB = ( nums[ NUM_EMPTY ] | tick );
 	else PORTB = ( nums[ display[digit] ] | tick );
 
 	digit = (digit+1) % DISPLAY_LEN;
@@ -68,32 +88,26 @@ ISR( TIMER0_COMPA_vect ) {
 void next_mode() {
 	Timer3 = 1000;
 
-	uint8_t current_alarm_index = mode / 3;
+	uint8_t current_alarm_index = mode / ALARM_LEN;
 	uint8_t type = mode % 3;
 
 	alarm_t * alarm = &alarms[current_alarm_index];
 
 	if( type == 0 ) {
 		blink_mask = 0b0000;
-		alarm_screen[0] = 0xA;
-		alarm_screen[1] = current_alarm_index;
-		alarm_screen[2] = 0x11;
-		alarm_screen[3] = 0x11;
+		update_alarm_screen_from_index( current_alarm_index );
 	} else {
 		if( type == 1 )
 			blink_mask = 0b0011;
 		else blink_mask = 0b1100;
 
-		alarm_screen[0] = alarm->time.hour/10;
-		alarm_screen[1] = alarm->time.hour%10;
-		alarm_screen[2] = alarm->time.min/10;
-		alarm_screen[3] = alarm->time.min%10;
+		update_alarm_screen_from_time( alarm->time );
 	}
 	display = alarm_screen;
 	mode = (mode+1)%(ALARM_LEN*3);
 }
 
-void change(uint8_t d) {
+void handle_change_on_alarm(uint8_t d) {
 	Timer3 = 1000;
 
 	if( display == main_screen ) return;
@@ -118,19 +132,29 @@ void change(uint8_t d) {
 			alarm->time.min += d;
 			break;
 	}
-	alarm_screen[0] = alarm->time.hour/10;
-	alarm_screen[1] = alarm->time.hour%10;
-	alarm_screen[2] = alarm->time.min/10;
-	alarm_screen[3] = alarm->time.min%10;
-
+	update_alarm_screen_from_time( alarm->time );
 }
 
 void up_handler() {
-	change(1);
+	handle_change_on_alarm(1);
 }
 
 void down_handler() {
-	change(-1);
+	handle_change_on_alarm(-1);
+}
+
+uint8_t time_compare(time_t a, time_t b) {
+	return ( a.hour == b.hour && a.min == b.min );
+}
+
+void check_alarms() {
+	for( uint8_t i = 0; i < ALARM_LEN; i++ ) {
+		alarm_t * alarm = &alarms[i];
+
+		if( !alarm->armed ) continue;
+
+		if( 
+	}
 }
 
 int main() {

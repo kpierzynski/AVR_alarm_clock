@@ -36,8 +36,9 @@ void clock_init() {
 	EICRA |= (1<<ISC01)|(1<<ISC00);		//RISING EDGE
 	EIMSK |= (1<<INT0);
 
-	clock_send( CONTROL_ADDR, 0b00010000 );
-	clock_send( CH_ADDR, clock_read(CH_ADDR) & 0b01111111 );
+	clock_send( CONTROL_ADDR, 0b00010000 );					//SQUARE 1HZ WAVE (check that)
+	clock_send( CH_ADDR, clock_read(CH_ADDR) & 0b01111111 );		//START OSCILATOR
+	clock_send( HOURS_ADDR, clock_read(HOURS_ADDR) & 0b00111111 );		//SET 24HOUR MODE
 }
 
 static uint8_t bcd2dec( uint8_t bcd ) {
@@ -49,13 +50,13 @@ static uint8_t dec2bcd( uint8_t dec ) {
 }
 
 void clock_time( time_t * time ) {
-	uint8_t sec = clock_read(SECONDS_ADDR);
-	sec = bcd2dec( sec );
+	uint8_t hr = clock_read(HOURS_ADDR);
+	hr = bcd2dec( hr );
 	uint8_t min = clock_read(MINUTES_ADDR);
 	min = bcd2dec( min );
 
-	time->min = sec;
-	time->hour = min;
+	time->min = min;
+	time->hour = hr;
 }
 
 ISR( INT0_vect ) {
