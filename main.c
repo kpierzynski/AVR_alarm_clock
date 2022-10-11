@@ -35,26 +35,30 @@ volatile uint8_t display[DISPLAY_LEN];
 alarm_t alarms[ALARM_LEN];
 time_t time;
 
+volatile uint8_t mode;
+
 volatile uint8_t tick = 0;
 void clock_tick() {
 	tick ^= 1;
 
 	clock_time( &time );
+	display[0] = time.hour/10;
+	display[1] = time.hour%10;
 	display[2] = time.min/10;
 	display[3] = time.min%10;
+
 }
 
-volatile uint8_t blink_mask = 0b0101;
+volatile uint8_t blink_mask;
 volatile uint8_t blink;
 ISR( TIMER0_COMPA_vect ) {
 	static uint8_t digit = 0;
 
 	PORTC = (PORTC & 0b11110000) | (1<<digit);
 
-	if( blink ) {
-		if( blink_mask & (1<<digit) ) PORTB = ( nums[ 0x11 ] | tick );
-		else PORTB = ( nums[ display[digit] ] | tick );
-	} else PORTB = ( nums[ display[digit] ] | tick );
+	if( blink && (blink_mask & (1<<digit)) )
+		PORTB = ( nums[ 0x11 ] | tick );
+	else PORTB = ( nums[ display[digit] ] | tick );
 
 	digit = (digit+1) % DISPLAY_LEN;
 }
@@ -97,6 +101,7 @@ int main() {
 
 	//DOTS
 	DDRD |= (1<<PD5)|(1<<PD6)|(1<<PD7);
+	PORTD |= (1<<PD5)|(1<<PD6)|(1<<PD7);
 
 	//NUMBER DATA PORT DIRECTION (use whole port. PB0 for dots)
 	DDRB = 0xFF;

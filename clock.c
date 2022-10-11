@@ -51,8 +51,11 @@ static uint8_t dec2bcd( uint8_t dec ) {
 void clock_time( time_t * time ) {
 	uint8_t sec = clock_read(SECONDS_ADDR);
 	sec = bcd2dec( sec );
+	uint8_t min = clock_read(MINUTES_ADDR);
+	min = bcd2dec( min );
 
 	time->min = sec;
+	time->hour = min;
 }
 
 ISR( INT0_vect ) {
