@@ -28,57 +28,44 @@ uint8_t nums[LEN] = {	0b00100000,	//0
 			0b11111110	//Empty		0x11
 };
 
-#define DISPLAY_LEN 4
-#define DISPLAY_BUFFS 4
+#define DISPLAY_LEN	4
+volatile uint8_t display[DISPLAY_LEN];
 
-#define NORMAL 0
-#define ALARM1 1
-#define ALARM2 2
-#define ALARM3 3
-#define MODE_LEN 4
-
-volatile uint8_t buffers[DISPLAY_BUFFS][DISPLAY_LEN] = {
-	{ 1, 2, 0, 0 },
-
-	{ 0xA, 1, 0x11, 0x11 },
-	{ 0xA, 2, 0x11, 0x11 },
-	{ 0xA, 3, 0x11, 0x11 },
-};
-
-uint8_t mode = NORMAL;
-volatile uint8_t * display = buffers[NORMAL];
-
-volatile uint8_t tick = 0;
+#define ALARM_LEN	3
+alarm_t alarms[ALARM_LEN];
 time_t time;
 
+volatile uint8_t tick = 0;
+void clock_tick() {
+	tick ^= 1;
+
+	clock_time( &time );
+	display[2] = time.min/10;
+	display[3] = time.min%10;
+}
+
+volatile uint8_t blink_mask = 0b0101;
+volatile uint8_t blink;
 ISR( TIMER0_COMPA_vect ) {
 	static uint8_t digit = 0;
 
 	PORTC = (PORTC & 0b11110000) | (1<<digit);
-	PORTB = ( nums[ display[digit] ] | tick);
+
+	if( blink ) {
+		if( blink_mask & (1<<digit) ) PORTB = ( nums[ 0x11 ] | tick );
+		else PORTB = ( nums[ display[digit] ] | tick );
+	} else PORTB = ( nums[ display[digit] ] | tick );
 
 	digit = (digit+1) % DISPLAY_LEN;
 }
 
 void next_mode() {
-	mode = (mode+1)%MODE_LEN;
-	display = buffers[mode];
 }
 
 void up_tick() {
 }
 
 void down_tick() {
-}
-
-void clock_tick() {
-	tick ^= 1;
-
-	clock_time( &time );
-	buffers[NORMAL][0] = time.hour/10;
-	buffers[NORMAL][1] = time.hour%10;
-	buffers[NORMAL][2] = time.min/10;
-	buffers[NORMAL][3] = time.min%10;
 }
 
 int main() {
@@ -124,11 +111,11 @@ int main() {
 		key_press(&down);
 
 		if( !Timer2 ) {
-			Timer2 = 100;
+			blink ^= 1;
+			Timer2 = 33;
 		}
-
-
 	}
 
 	return 0;
 }
+
