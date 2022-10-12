@@ -113,7 +113,7 @@ void check_alarms() {
 void clock_tick() {
 	tick ^= 1;
 
-	clock_time( &time );
+	clock_update_time( &time );
 	update_main_screen();
 	if( display == main_screen ) check_alarms();
 }
@@ -247,7 +247,7 @@ int main() {
 			display = main_screen;
 			blink_mask = 0b0000;
 			mode = 0;
-			Timer3 = 1000;
+			Timer3 = 700;
 		}
 
 		if( !Timer4 ) {

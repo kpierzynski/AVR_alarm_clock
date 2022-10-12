@@ -1,5 +1,11 @@
 #include "ds1307.h"
 
+void (*ds1307_out_callback)();
+
+void register_ds1307_out( void (*callback)(void) ) {
+	ds1307_out_callback = callback;
+}
+
 static uint8_t bcd2dec( uint8_t bcd ) {
 	return ((((bcd) >> 4) & 0x0F) * 10 ) + ((bcd) & 0x0F);
 }
@@ -42,19 +48,17 @@ void ds1307_set_time( uint8_t hh, uint8_t mm, uint8_t ss ) {
 }
 
 void ds1307_init() {
-	i2c_init( 100 );
-
 	INT_IN;
 	INT_PULLUP;
 
 	INT_EDGE_REG |= INT_EDGE_DETECT;
 	INT_ENABLE_REG |= (1<<INT);
 
-	ds1307_send( CONTROL_REG, (1<<DS1307_SQWE) | OUT_FREQ ) );							//ENABLE SQUARE 1HZ WAVE
+	ds1307_send( CONTROL_REG, (1<<DS1307_SQWE) | OUT_FREQ );								//ENABLE SQUARE 1HZ WAVE
 	ds1307_send( CH_REG, ds1307_read(CH_REG) & ~(1<<DS1307_CH) );							//START OSCILATOR
 	ds1307_send( MODE_12_24_REG, ds1307_read(MODE_12_24_REG) & ~(1<<DS1307_12_24_MODE) );	//SET 24HOUR MODE
 }
 
-ISR( INT_vect ) {
-
+ISR( INT_VECT ) {
+	if( ds1307_out_callback ) ds1307_out_callback();
 }

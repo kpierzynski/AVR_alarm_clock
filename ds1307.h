@@ -65,4 +65,5 @@ void ds1307_init();
 void ds1307_get_time( uint8_t * hh, uint8_t * mm, uint8_t * ss );
 void ds1307_set_time( uint8_t hh, uint8_t mm, uint8_t ss );
 
+void register_ds1307_out( void (*callback)(void) );
 #endif
