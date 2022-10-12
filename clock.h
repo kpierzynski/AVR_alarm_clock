@@ -8,8 +8,8 @@
 #include "common.h"
 
 void clock_init();
-void clock_update_time( time_t * time );
+void clock_update_time(time_t *time);
 void clock_event();
 
-void register_clock_out_1hz( void (*callback)(void) );
+void register_clock_out_1hz(void (*callback)(void));
 #endif

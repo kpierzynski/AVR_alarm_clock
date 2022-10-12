@@ -3,8 +3,8 @@
 
 #include <avr/io.h>
 
-#define ACK	1
-#define NACK	0
+#define ACK 1
+#define NACK 0
 
 void i2c_init(uint16_t freq);
 void i2c_write(uint8_t byte);
