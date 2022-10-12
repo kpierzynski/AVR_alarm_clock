@@ -126,13 +126,17 @@ void next_mode() {
 	mode = (mode+1)%(ALARM_LEN*3);
 }
 
-void handle_change_on_alarm(uint8_t d) {
+inline uint8_t modulo_positive( int8_t i, uint8_t n ) {
+	return ((i % n) + n) % n;
+}
+
+void handle_change_on_alarm(int8_t d) {
 	Timer3 = 1000;
 
 	if( display == main_screen ) return;
 
-	uint8_t type = (mode-1) % 3;
-	uint8_t current_alarm_index = (mode-1) / 3;
+	uint8_t type = modulo_positive(mode-1, 3);
+	uint8_t current_alarm_index = ( modulo_positive(mode-1, ALARM_LEN*3) ) / 3;
 
 	alarm_t * alarm = &alarms[current_alarm_index];
 
@@ -145,10 +149,10 @@ void handle_change_on_alarm(uint8_t d) {
 			return;
 		}
 		case 1:
-			alarm->time.hour += d;
+			alarm->time.hour = (alarm->time.hour + d) % 24;
 			break;
 		case 2:
-			alarm->time.min += d;
+			alarm->time.min = (alarm->time.min + d) % 60;
 			break;
 	}
 	update_alarm_screen_from_time( alarm->time );
