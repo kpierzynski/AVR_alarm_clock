@@ -58,10 +58,10 @@ void update_alarm_screen_from_index( uint8_t i ) {
 }
 
 void update_alarm_screen_from_time( time_t t ) {
-	alarm_screen[0] = time.hour/10;
-	alarm_screen[1] = time.hour%10;
-	alarm_screen[2] = time.min/10;
-	alarm_screen[3] = time.min%10;
+	alarm_screen[0] = t.hour/10;
+	alarm_screen[1] = t.hour%10;
+	alarm_screen[2] = t.min/10;
+	alarm_screen[3] = t.min%10;
 }
 
 volatile uint8_t tick = 0;
@@ -100,6 +100,7 @@ void clock_tick() {
 	tick ^= 1;
 
 	clock_time( &time );
+	update_main_screen();
 	check_alarms();
 }
 
@@ -210,6 +211,8 @@ int main() {
 		key_press(&mode_btn);
 		key_press(&up_btn);
 		key_press(&down_btn);
+
+		clock_event();
 
 		if( !Timer2 ) {
 			blink ^= 1;
