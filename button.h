@@ -4,6 +4,8 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
+#include "soft_timer.h"
+
 typedef struct {
 	volatile uint8_t *KPIN;
 	uint8_t key_mask;
@@ -16,7 +18,5 @@ typedef struct {
 
 void key_press( button_t * btn );
 void key_init();
-
-volatile uint16_t Timer2, Timer3, Timer4;
 
 #endif

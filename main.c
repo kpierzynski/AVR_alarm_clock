@@ -7,6 +7,7 @@
 #include "common.h"
 #include "button.h"
 #include "clock.h"
+#include "soft_timer.h"
 
 #define NUM_LEN 18
 #define NUM_DASH	0x10
@@ -119,7 +120,7 @@ void clock_tick() {
 }
 
 void next_mode() {
-	Timer3 = 1000;
+	timer_interval(2, 7500);
 
 	if( handle_dismiss() ) return;
 
@@ -147,7 +148,7 @@ inline uint8_t modulo_positive( int8_t i, uint8_t n ) {
 }
 
 void handle_change_on_alarm(int8_t d) {
-	Timer3 = 1000;
+	timer_interval(2, 7500);
 
 	if( display == main_screen ) return;
 
@@ -197,6 +198,9 @@ int main() {
 	OCR0A = 32;
 	TIMSK0 |= (1<<OCIE0A);
 
+	//SOFT TIMERS
+	timer_init();
+
 	//BUTTONS
 	key_init();
 	button_t mode_btn = { &BTN_MODE_PIN, BTN_MODE, 2, next_mode, NULL };
@@ -230,32 +234,36 @@ int main() {
 	DDRD |= (1<<PD1);
 	PORTD &= ~(1<<PD1);
 
+	void blink_handler() {
+		blink ^= 1;
+	}
+
+	void screen2main_handler() {
+		display = main_screen;
+		mode = 0;
+			
+		if( !ringing ) blink_mask = 0b0000;
+	}
+
+	void ringing_handler() {
+		if( ringing ) {
+			PORTD ^= (1<<PD1);
+		}
+	}
+
+	timer_create( 1, 333, blink_handler );
+	timer_create( 2, 7500, screen2main_handler );
+	timer_create( 3, 10, ringing_handler );
+
 	sei();
 	while( 1 ) {
 		key_press(&mode_btn);
 		key_press(&up_btn);
 		key_press(&down_btn);
 
+		timer_event();
+
 		clock_event();
-
-		if( !Timer2 ) {
-			blink ^= 1;
-			Timer2 = 33;
-		}
-
-		if( !Timer3 ) {
-			display = main_screen;
-			blink_mask = 0b0000;
-			mode = 0;
-			Timer3 = 700;
-		}
-
-		if( !Timer4 ) {
-			if( ringing ) {
-				PORTD ^= (1<<PD1);
-			}
-			Timer4 = 1;
-		}
 	}
 
 	return 0;
