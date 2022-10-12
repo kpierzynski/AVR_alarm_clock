@@ -64,6 +64,7 @@ void update_alarm_screen_from_time( time_t t ) {
 	alarm_screen[3] = t.min%10;
 }
 
+volatile uint8_t ringing = 0;
 volatile uint8_t tick = 0;
 volatile uint8_t blink_mask;
 volatile uint8_t blink;
@@ -79,6 +80,19 @@ ISR( TIMER0_COMPA_vect ) {
 	digit = (digit+1) % DISPLAY_LEN;
 }
 
+uint8_t handle_dismiss() {
+	if( ringing ) {
+		alarms[ringing-1].armed = 0;
+		PORTD |= (1<<(5+ringing-1));
+		blink_mask = 0b0000;
+		ringing = 0;
+
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
 uint8_t time_compare(time_t a, time_t b) {
 	return ( a.hour == b.hour && a.min == b.min );
 }
@@ -90,8 +104,8 @@ void check_alarms() {
 		if( !alarm->armed ) continue;
 
 		if( time_compare( alarm->time, time ) ) {
+			ringing = i+1;
 			blink_mask = 0b1111;
-			//One of alarms fired.
 		}
 	}
 }
@@ -101,11 +115,13 @@ void clock_tick() {
 
 	clock_time( &time );
 	update_main_screen();
-	check_alarms();
+	if( display == main_screen ) check_alarms();
 }
 
 void next_mode() {
 	Timer3 = 1000;
+
+	if( handle_dismiss() ) return;
 
 	uint8_t current_alarm_index = mode / ALARM_LEN;
 	uint8_t type = mode % 3;
@@ -210,6 +226,10 @@ int main() {
 	//PLEXER TRANSISTOR DIRECTION
 	DDRC |= (1<<PC0)|(1<<PC1)|(1<<PC2)|(1<<PC3);
 
+	//BUZZ
+	DDRD |= (1<<PD1);
+	PORTD &= ~(1<<PD1);
+
 	sei();
 	while( 1 ) {
 		key_press(&mode_btn);
@@ -228,6 +248,13 @@ int main() {
 			blink_mask = 0b0000;
 			mode = 0;
 			Timer3 = 1000;
+		}
+
+		if( !Timer4 ) {
+			if( ringing ) {
+				PORTD ^= (1<<PD1);
+			}
+			Timer4 = 1;
 		}
 	}
 

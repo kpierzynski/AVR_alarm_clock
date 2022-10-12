@@ -17,6 +17,6 @@ typedef struct {
 void key_press( button_t * btn );
 void key_init();
 
-volatile uint16_t Timer2, Timer3;
+volatile uint16_t Timer2, Timer3, Timer4;
 
 #endif
