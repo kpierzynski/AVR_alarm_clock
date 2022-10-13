@@ -138,10 +138,10 @@ void handle_change_on_alarm(int8_t d)
 		return;
 	}
 	case 1:
-		alarm->time.hour = (alarm->time.hour + d) % 24;
+		alarm->time.hour = modulo_positive(alarm->time.hour + d, 24);
 		break;
 	case 2:
-		alarm->time.min = (alarm->time.min + d) % 60;
+		alarm->time.min = modulo_positive(alarm->time.min + d, 60);
 		break;
 	}
 	update_alarm_screen_from_time(alarm->time);
