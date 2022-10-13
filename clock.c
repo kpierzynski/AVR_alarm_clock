@@ -26,6 +26,16 @@ void clock_init()
 	register_ds1307_out(tick);
 }
 
+void clock_save_alarm(uint8_t index, alarm_t *alarm)
+{
+	ds1307_write_ram_buf(index * sizeof(alarm_t), sizeof(alarm_t), (uint8_t *)alarm);
+}
+
+void clock_open_alarm(uint8_t index, alarm_t *alarm)
+{
+	ds1307_read_ram_buf(index * sizeof(alarm_t), sizeof(alarm_t), (uint8_t *)alarm);
+}
+
 void clock_event()
 {
 	if (call_callback)

@@ -10,19 +10,18 @@
 #include "clock.h"
 #include "soft_timer.h"
 #include "display.h"
+#include "alarm.h"
 
 #include "util/modulo.h"
 
 screen_t main_screen;
 screen_t alarm_screen;
 
-#define ALARM_LEN 3
-alarm_t alarms[ALARM_LEN];
 time_t time;
 
 uint8_t mode;
 
-volatile uint8_t ringing = 0;
+uint8_t ringing = 0;
 
 void update_main_screen()
 {
@@ -43,10 +42,11 @@ uint8_t handle_dismiss()
 {
 	if (ringing)
 	{
-		alarms[ringing - 1].armed = 0;
+		alarm_unarm(ringing - 1);
+
 		PORTD |= (1 << (5 + ringing - 1));
 
-		display_blink_reset();
+		display_blink(BLINK_NONE);
 		ringing = 0;
 
 		return 1;
@@ -55,22 +55,15 @@ uint8_t handle_dismiss()
 	return 0;
 }
 
-inline uint8_t time_compare(time_t a, time_t b)
-{
-	return (a.hour == b.hour && a.min == b.min);
-}
-
 void check_alarms()
 {
 	uint8_t i;
-	for (i = 0; i < ALARM_LEN; i++)
+	for (i = 0; i < ALARM_COUNT; i++)
 	{
-		alarm_t *alarm = &alarms[i];
-
-		if (!alarm->armed)
+		if (!alarm_armed(i))
 			continue;
 
-		if (time_compare(alarm->time, time))
+		if (time_compare(alarm_get_time(i), time))
 		{
 			ringing = i + 1;
 			display_blink(BLINK_BOTH);
@@ -100,14 +93,12 @@ void next_mode()
 	if (handle_dismiss())
 		return;
 
-	uint8_t current_alarm_index = mode / ALARM_LEN;
+	uint8_t current_alarm_index = mode / ALARM_COUNT;
 	uint8_t type = mode % 3;
-
-	alarm_t *alarm = &alarms[current_alarm_index];
 
 	if (type == 0)
 	{
-		display_blink_reset();
+		display_blink(BLINK_NONE);
 		update_alarm_screen_from_index(current_alarm_index);
 	}
 	else
@@ -117,10 +108,10 @@ void next_mode()
 		else
 			display_blink(BLINK_MIN);
 
-		update_alarm_screen_from_time(alarm->time);
+		update_alarm_screen_from_time(alarm_get_time(current_alarm_index));
 	}
 	display_set_screen(&alarm_screen);
-	mode = (mode + 1) % (ALARM_LEN * 3);
+	mode = (mode + 1) % (ALARM_COUNT * 3);
 }
 
 void handle_change_on_alarm(int8_t d)
@@ -131,7 +122,7 @@ void handle_change_on_alarm(int8_t d)
 		return;
 
 	uint8_t type = modulo_positive(mode - 1, 3);
-	uint8_t current_alarm_index = (modulo_positive(mode - 1, ALARM_LEN * 3)) / 3;
+	uint8_t current_alarm_index = (modulo_positive(mode - 1, ALARM_COUNT * 3)) / 3;
 
 	alarm_t *alarm = &alarms[current_alarm_index];
 
@@ -168,13 +159,6 @@ void down_handler()
 
 int main()
 {
-	alarms[0].time.hour = 12;
-	alarms[0].time.min = 30;
-	alarms[1].time.hour = 7;
-	alarms[1].time.min = 15;
-	alarms[2].time.hour = 22;
-	alarms[2].time.min = 45;
-
 	// SOFT TIMERS
 	timer_init();
 
@@ -210,7 +194,7 @@ int main()
 		mode = 0;
 
 		if (!ringing)
-			display_blink_reset();
+			display_blink(BLINK_NONE);
 	}
 
 	void ringing_handler()

@@ -33,16 +33,4 @@
 #define BTN_DOWN_LOW BTN_DOWN_PORT &= ~BTN_DOWN
 #define BTN_DOWN_STATE (BTN_DOWN_PIN & BTN_DOWN)
 
-typedef struct
-{
-	uint8_t hour;
-	uint8_t min;
-} time_t;
-
-typedef struct
-{
-	time_t time;
-	uint8_t armed;
-} alarm_t;
-
 #endif

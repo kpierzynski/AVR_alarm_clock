@@ -65,5 +65,8 @@ void ds1307_init();
 void ds1307_get_time(uint8_t *hh, uint8_t *mm, uint8_t *ss);
 void ds1307_set_time(uint8_t hh, uint8_t mm, uint8_t ss);
 
+void ds1307_read_ram_buf(uint8_t address, uint8_t len, uint8_t *buf);
+void ds1307_write_ram_buf(uint8_t address, uint8_t len, uint8_t *buf);
+
 void register_ds1307_out(void (*callback)(void));
 #endif

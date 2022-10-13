@@ -41,17 +41,12 @@ inline void display_blink(uint8_t mask)
 	blink_mask = mask;
 }
 
-inline void display_blink_reset()
-{
-	blink_mask = BLINK_NONE;
-}
-
 inline void display_tick()
 {
 	tick ^= 1;
 }
 
-static void display_blink_tick()
+static void blink_timer()
 {
 	blink ^= 1;
 }
@@ -74,7 +69,7 @@ void display_init(screen_t *s)
 	// PLEXER TRANSISTOR DIRECTION
 	DDRC |= (1 << PC0) | (1 << PC1) | (1 << PC2) | (1 << PC3);
 
-	timer_create(1, 250, display_blink_tick);
+	timer_create(1, 250, blink_timer);
 
 	screen = s;
 }

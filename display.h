@@ -44,7 +44,6 @@ void display_init(screen_t *s);
 void display_set_screen(screen_t *screen);
 
 void display_blink(uint8_t mask);
-void display_blink_reset();
 
 void display_tick();
 
