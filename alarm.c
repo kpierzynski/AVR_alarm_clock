@@ -17,6 +17,10 @@ inline void alarm_unarm(uint8_t index)
 	alarms[index].armed = 0;
 }
 
+inline uint8_t alarm_flip_arm(uint8_t index) {
+	return (alarms[index].armed ^= 1);
+}
+
 inline time_t alarm_get_time(uint8_t index)
 {
 	return alarms[index].time;

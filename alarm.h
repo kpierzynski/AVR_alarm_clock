@@ -29,6 +29,8 @@ void alarm_init();
 uint8_t alarm_armed(uint8_t index);
 void alarm_arm(uint8_t index);
 void alarm_unarm(uint8_t index);
+uint8_t alarm_flip_arm(uint8_t index);
+
 time_t alarm_get_time(uint8_t index);
 
 void alarm_sync();

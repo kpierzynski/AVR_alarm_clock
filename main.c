@@ -123,14 +123,12 @@ void handle_change_on_alarm(int8_t d)
 
 	uint8_t type = modulo_positive(mode - 1, 3);
 	uint8_t current_alarm_index = (modulo_positive(mode - 1, ALARM_COUNT * 3)) / 3;
-
-	alarm_t *alarm = &alarms[current_alarm_index];
-
+	
 	switch (type)
 	{
 	case 0:
 	{
-		uint8_t armed = (alarm->armed ^= 1);
+		uint8_t armed = alarm_flip_arm(current_alarm_index);
 		if (armed)
 			PORTD &= ~(1 << (5 + current_alarm_index));
 		else
