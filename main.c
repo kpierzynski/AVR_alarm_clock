@@ -3,43 +3,18 @@
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 #include <stddef.h>
+#include <string.h>
 
 #include "common.h"
 #include "button.h"
 #include "clock.h"
 #include "soft_timer.h"
+#include "display.h"
 
 #include "util/modulo.h"
 
-#define NUM_LEN 18
-#define NUM_DASH 0x10
-#define NUM_EMPTY 0x11
-
-const uint8_t nums[NUM_LEN] = {
-	0b00100000, // 0
-	0b10111010, // 1
-	0b01001000, // 2
-	0b00011000, // 3
-	0b10010010, // 4
-	0b00010100, // 5
-	0b00000100, // 6
-	0b10111000, // 7
-	0b00000000, // 8
-	0b00010000, // 9
-	0b10000000, // A
-	0b00000110, // B
-	0b01100100, // C
-	0b00001010, // D
-	0b01000100, // E
-	0b11000100, // F
-	0b11011110, //-			0x10
-	0b11111110	// Empty		0x11
-};
-
-#define DISPLAY_LEN 4
-uint8_t main_screen[DISPLAY_LEN];
-uint8_t alarm_screen[DISPLAY_LEN];
-volatile uint8_t *display = main_screen;
+screen_t main_screen;
+screen_t alarm_screen;
 
 #define ALARM_LEN 3
 alarm_t alarms[ALARM_LEN];
@@ -47,51 +22,21 @@ time_t time;
 
 uint8_t mode;
 
+volatile uint8_t ringing = 0;
+
 void update_main_screen()
 {
-	main_screen[0] = time.hour / 10;
-	main_screen[1] = time.hour % 10;
-	main_screen[2] = time.min / 10;
-	main_screen[3] = time.min % 10;
+	memcpy(main_screen.buf, (uint8_t[DISPLAY_LEN]){time.hour / 10, time.hour % 10, time.min / 10, time.min % 10}, DISPLAY_LEN);
 }
 
 void update_alarm_screen_from_index(uint8_t i)
 {
-	alarm_screen[0] = 0xA;
-	alarm_screen[1] = i + 1; //+1 bo niby nie ma czegos takiego jak alarm 0...
-	alarm_screen[2] = NUM_EMPTY;
-	alarm_screen[3] = NUM_EMPTY;
+	memcpy(alarm_screen.buf, (uint8_t[DISPLAY_LEN]){NUM_A, i + 1, NUM_EMPTY, NUM_EMPTY}, DISPLAY_LEN);
 }
 
 void update_alarm_screen_from_time(time_t t)
 {
-	alarm_screen[0] = t.hour / 10;
-	alarm_screen[1] = t.hour % 10;
-	alarm_screen[2] = t.min / 10;
-	alarm_screen[3] = t.min % 10;
-}
-
-inline uint8_t is_main_visible()
-{
-	return (display == main_screen);
-}
-
-volatile uint8_t ringing = 0;
-volatile uint8_t tick = 0;
-volatile uint8_t blink_mask;
-volatile uint8_t blink;
-ISR(TIMER0_COMPA_vect)
-{
-	static uint8_t digit = 0;
-
-	PORTC = (PORTC & 0b11110000) | (1 << digit);
-
-	if (blink && (blink_mask & (1 << digit)))
-		PORTB = (nums[NUM_EMPTY] | tick);
-	else
-		PORTB = (nums[display[digit]] | tick);
-
-	digit = (digit + 1) % DISPLAY_LEN;
+	memcpy(alarm_screen.buf, (uint8_t[DISPLAY_LEN]){t.hour / 10, t.hour % 10, t.min / 10, t.min % 10}, DISPLAY_LEN);
 }
 
 uint8_t handle_dismiss()
@@ -100,7 +45,8 @@ uint8_t handle_dismiss()
 	{
 		alarms[ringing - 1].armed = 0;
 		PORTD |= (1 << (5 + ringing - 1));
-		blink_mask = 0b0000;
+
+		display_blink_reset();
 		ringing = 0;
 
 		return 1;
@@ -116,7 +62,8 @@ inline uint8_t time_compare(time_t a, time_t b)
 
 void check_alarms()
 {
-	for (uint8_t i = 0; i < ALARM_LEN; i++)
+	uint8_t i;
+	for (i = 0; i < ALARM_LEN; i++)
 	{
 		alarm_t *alarm = &alarms[i];
 
@@ -126,18 +73,18 @@ void check_alarms()
 		if (time_compare(alarm->time, time))
 		{
 			ringing = i + 1;
-			blink_mask = 0b1111;
+			display_blink(BLINK_BOTH);
 		}
 	}
 }
 
 void clock_tick()
 {
-	tick ^= 1;
+	display_tick();
 
 	clock_update_time(&time);
 	update_main_screen();
-	if (is_main_visible())
+	if (main_screen.is_enabled)
 		check_alarms();
 }
 
@@ -160,19 +107,19 @@ void next_mode()
 
 	if (type == 0)
 	{
-		blink_mask = 0b0000;
+		display_blink_reset();
 		update_alarm_screen_from_index(current_alarm_index);
 	}
 	else
 	{
 		if (type == 1)
-			blink_mask = 0b0011;
+			display_blink(BLINK_HOUR);
 		else
-			blink_mask = 0b1100;
+			display_blink(BLINK_MIN);
 
 		update_alarm_screen_from_time(alarm->time);
 	}
-	display = alarm_screen;
+	display_set_screen(&alarm_screen);
 	mode = (mode + 1) % (ALARM_LEN * 3);
 }
 
@@ -180,7 +127,7 @@ void handle_change_on_alarm(int8_t d)
 {
 	reset_main();
 
-	if (is_main_visible())
+	if (main_screen.is_enabled)
 		return;
 
 	uint8_t type = modulo_positive(mode - 1, 3);
@@ -228,14 +175,11 @@ int main()
 	alarms[2].time.hour = 22;
 	alarms[2].time.min = 45;
 
-	// TIMER FOR MULTIPLEXING
-	TCCR0A |= (1 << WGM01);
-	TCCR0B |= (1 << CS02) | (1 << CS00);
-	OCR0A = 32;
-	TIMSK0 |= (1 << OCIE0A);
-
 	// SOFT TIMERS
 	timer_init();
+
+	// DISPLAY INIT
+	display_init(&main_screen);
 
 	// BUTTONS
 	key_init();
@@ -256,32 +200,17 @@ int main()
 	clock_init();
 	register_clock_out_1hz(clock_tick);
 
-	// DOTS
-	DDRD |= (1 << PD5) | (1 << PD6) | (1 << PD7);
-	PORTD |= (1 << PD5) | (1 << PD6) | (1 << PD7);
-
-	// NUMBER DATA PORT DIRECTION (use whole port. PB0 for dots)
-	DDRB = 0xFF;
-
-	// PLEXER TRANSISTOR DIRECTION
-	DDRC |= (1 << PC0) | (1 << PC1) | (1 << PC2) | (1 << PC3);
-
 	// BUZZ
 	DDRD |= (1 << PD1);
 	PORTD &= ~(1 << PD1);
 
-	void blink_handler()
+	void reset_screen()
 	{
-		blink ^= 1;
-	}
-
-	void screen2main_handler()
-	{
-		display = main_screen;
+		display_set_screen(&main_screen);
 		mode = 0;
 
 		if (!ringing)
-			blink_mask = 0b0000;
+			display_blink_reset();
 	}
 
 	void ringing_handler()
@@ -292,8 +221,7 @@ int main()
 		}
 	}
 
-	timer_create(1, 333, blink_handler);
-	timer_create(2, 7500, screen2main_handler);
+	timer_create(2, 7500, reset_screen);
 	timer_create(3, 10, ringing_handler);
 
 	sei();
