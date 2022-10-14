@@ -3,6 +3,18 @@
 
 #include <avr/io.h>
 
+typedef struct
+{
+	uint8_t hour;
+	uint8_t min;
+} time_t;
+
+typedef struct
+{
+	time_t time;
+	uint8_t armed;
+} alarm_t;
+
 #define BTN_MODE (1 << PD0)
 #define BTN_MODE_DDR DDRD
 #define BTN_MODE_PORT PORTD

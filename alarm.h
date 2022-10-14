@@ -3,21 +3,12 @@
 
 #include <stdint.h>
 
+#include "common.h"
 #include "clock.h"
 
+#include "util/modulo.h"
+
 #define ALARM_COUNT 3
-
-typedef struct
-{
-	uint8_t hour;
-	uint8_t min;
-} time_t;
-
-typedef struct
-{
-	time_t time;
-	uint8_t armed;
-} alarm_t;
 
 inline uint8_t time_compare(time_t a, time_t b)
 {
@@ -32,6 +23,8 @@ void alarm_unarm(uint8_t index);
 uint8_t alarm_flip_arm(uint8_t index);
 
 time_t alarm_get_time(uint8_t index);
+
+void alarm_update_time(uint8_t i, time_t t);
 
 void alarm_sync();
 

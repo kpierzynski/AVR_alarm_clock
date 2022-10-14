@@ -123,7 +123,7 @@ void handle_change_on_alarm(int8_t d)
 
 	uint8_t type = modulo_positive(mode - 1, 3);
 	uint8_t current_alarm_index = (modulo_positive(mode - 1, ALARM_COUNT * 3)) / 3;
-	
+
 	switch (type)
 	{
 	case 0:
@@ -136,13 +136,13 @@ void handle_change_on_alarm(int8_t d)
 		return;
 	}
 	case 1:
-		alarm->time.hour = modulo_positive(alarm->time.hour + d, 24);
+		alarm_update_time(current_alarm_index, (time_t){d, 0});
 		break;
 	case 2:
-		alarm->time.min = modulo_positive(alarm->time.min + d, 60);
+		alarm_update_time(current_alarm_index, (time_t){0, d});
 		break;
 	}
-	update_alarm_screen_from_time(alarm->time);
+	update_alarm_screen_from_time(alarm_get_time(current_alarm_index));
 }
 
 void up_handler()
@@ -182,12 +182,19 @@ int main()
 	clock_init();
 	register_clock_out_1hz(clock_tick);
 
+	// ALARM
+	alarm_init();
+
 	// BUZZ
 	DDRD |= (1 << PD1);
 	PORTD &= ~(1 << PD1);
 
 	void reset_screen()
 	{
+		if (main_screen.is_enabled)
+			return;
+
+		alarm_sync();
 		display_set_screen(&main_screen);
 		mode = 0;
 

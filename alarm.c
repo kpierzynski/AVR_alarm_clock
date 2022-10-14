@@ -17,13 +17,20 @@ inline void alarm_unarm(uint8_t index)
 	alarms[index].armed = 0;
 }
 
-inline uint8_t alarm_flip_arm(uint8_t index) {
+inline uint8_t alarm_flip_arm(uint8_t index)
+{
 	return (alarms[index].armed ^= 1);
 }
 
 inline time_t alarm_get_time(uint8_t index)
 {
 	return alarms[index].time;
+}
+
+inline void alarm_update_time(uint8_t i, time_t t)
+{
+	alarms[i].time.hour = modulo_positive(alarms[i].time.hour + t.hour, 24);
+	alarms[i].time.min = modulo_positive(alarms[i].time.min + t.min, 60);
 }
 
 void alarm_sync()
