@@ -49,6 +49,8 @@ uint8_t handle_dismiss()
 		display_blink(BLINK_NONE);
 		ringing = 0;
 
+		alarm_sync();
+
 		return 1;
 	}
 
