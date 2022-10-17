@@ -49,21 +49,21 @@ typedef struct
 	callback_t callback;
 } transition_t;
 
-state_t nothing()
+state_t default_action()
 {
 	return IDLE;
 }
 
-state_t show()
+state_t update_time()
 {
-	main_screen.buf[0] = NUM_A;
+	clock_update_time(&time);
 	return IDLE;
 }
 
 #define TRANSITION_COUNT 2
 transition_t transitions[TRANSITION_COUNT] = {
-	{IDLE, NONE, nothing},
-	{IDLE, MODE_BTN, show},
+	{IDLE, NONE, default_action},
+	{IDLE, TIME_UPDATE, update_time},
 };
 
 callback_t lookup_transition(state_t s, event_t e)
@@ -75,7 +75,7 @@ callback_t lookup_transition(state_t s, event_t e)
 			return transitions[i].callback;
 	}
 
-	return nothing;
+	return default_action;
 }
 
 void mode_handler()
@@ -107,26 +107,26 @@ int main()
 	display_init(&main_screen);
 
 	// BUTTONS
-	// key_init();
-	// button_t mode_btn = {&BTN_MODE_PIN, BTN_MODE, 2, mode_handler, NULL};
-	// button_t up_btn = {&BTN_UP_PIN, BTN_UP, 2, up_handler, NULL};
-	// button_t down_btn = {&BTN_DOWN_PIN, BTN_DOWN, 2, down_handler, NULL};
+	key_init();
+	button_t mode_btn = {&BTN_MODE_PIN, BTN_MODE, 2, mode_handler, NULL};
+	button_t up_btn = {&BTN_UP_PIN, BTN_UP, 2, up_handler, NULL};
+	button_t down_btn = {&BTN_DOWN_PIN, BTN_DOWN, 2, down_handler, NULL};
 
-	// BTN_MODE_IN;
-	// BTN_MODE_HIGH;
+	BTN_MODE_IN;
+	BTN_MODE_HIGH;
 
-	// BTN_UP_IN;
-	// BTN_UP_HIGH;
-
-	// BTN_DOWN_IN;
-	// BTN_DOWN_HIGH;
+	BTN_UP_IN;
+	BTN_UP_HIGH;
+	
+	BTN_DOWN_IN;
+	BTN_DOWN_HIGH;
 
 	// CLOCK
-	// clock_init();
-	// register_clock_out_1hz(clock_tick);
+	clock_init();
+	register_clock_out_1hz(clock_tick);
 
 	// ALARM
-	// alarm_init();
+	alarm_init();
 
 	// BUZZ
 	// DDRD |= (1 << PD1);
@@ -140,13 +140,13 @@ int main()
 	{
 		state = lookup_transition(state, event)();
 
-		// key_press(&mode_btn);
-		// key_press(&up_btn);
-		// key_press(&down_btn);
+		key_press(&mode_btn);
+		key_press(&up_btn);
+		key_press(&down_btn);
 
-		// timer_event();
+		timer_event();
 
-		// clock_event();
+		clock_event();
 	}
 
 	return 0;
