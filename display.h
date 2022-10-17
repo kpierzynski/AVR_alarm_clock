@@ -3,11 +3,12 @@
 
 #include <avr/io.h>
 
+#include "protocols/spi.h"
 #include "soft_timer.h"
 
 #define DISPLAY_LEN 4
 
-#define NUM_LEN 18
+#define NUM_LEN 17
 
 #define NUM_0 0x00
 #define NUM_1 0x01

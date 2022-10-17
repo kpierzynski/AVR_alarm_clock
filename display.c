@@ -8,24 +8,25 @@ volatile uint8_t blink_mask; // Mask of blinking digits
 volatile uint8_t blink;		 // If should blink
 
 const uint8_t nums[NUM_LEN] = {
-	0b00100000, // 0
-	0b10111010, // 1
-	0b01001000, // 2
-	0b00011000, // 3
-	0b10010010, // 4
-	0b00010100, // 5
-	0b00000100, // 6
-	0b10111000, // 7
+	0b00000010, // 0
+	0b01011110, // 1
+	0b10010000, // 2
+	0b00010100, // 3
+	0b01001100, // 4
+	0b00100100, // 5
+	0b00100000, // 6
+	0b00011110, // 7
 	0b00000000, // 8
-	0b00010000, // 9
-	0b10000000, // A
-	0b00000110, // B
-	0b01100100, // C
-	0b00001010, // D
-	0b01000100, // E
-	0b11000100, // F
-	0b11011110, // -
-	0b11111110	// Empty
+	0b00000100, // 9
+
+	0b00001000, // A
+	0b01100000, // B
+	0b10100010, // C
+	0b01010000, // D
+	0b10100000, // E
+	0b10101000, // F
+
+	0b11111110 // Empty
 };
 
 void display_set_screen(screen_t *s)
@@ -59,12 +60,10 @@ void display_init(screen_t *s)
 	OCR0A = 32;
 	TIMSK0 |= (1 << OCIE0A);
 
+	spi_init();
 	// DOTS
-	DDRD |= (1 << PD5) | (1 << PD6) | (1 << PD7);
-	PORTD |= (1 << PD5) | (1 << PD6) | (1 << PD7);
-
-	// DIGIT DATA PORT DIRECTION (use whole port. PB0 for vertical dots)
-	DDRB = 0xFF;
+	// DDRD |= (1 << PD5) | (1 << PD6) | (1 << PD7);
+	// PORTD |= (1 << PD5) | (1 << PD6) | (1 << PD7);
 
 	// PLEXER TRANSISTOR DIRECTION
 	DDRC |= (1 << PC0) | (1 << PC1) | (1 << PC2) | (1 << PC3);
@@ -78,12 +77,14 @@ ISR(TIMER0_COMPA_vect)
 {
 	static uint8_t digit = 0;
 
-	PORTC = (PORTC & 0b11110000) | (1 << digit);
-
 	if (blink && (blink_mask & (1 << digit)))
-		PORTB = (nums[NUM_EMPTY] | tick);
+		spi_tx(nums[NUM_EMPTY] | tick);
 	else
-		PORTB = (nums[screen->buf[digit]] | tick);
+		spi_tx(nums[screen->buf[digit]] | tick);
+
+	PORTC = (PORTC & 0b11110000) | ~(1 << digit);
+	PORTB |= (1 << PB2);
+	PORTB &= ~(1 << PB2);
 
 	digit = (digit + 1) % DISPLAY_LEN;
 }
