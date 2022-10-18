@@ -1,6 +1,15 @@
 #include "alarm.h"
 
 alarm_t alarms[ALARM_COUNT];
+uint8_t dots[ALARM_COUNT] = {(1 << PB6), (1 << PB7), (1 << PB0)};
+
+static void alarm_dot(uint8_t index)
+{
+	if ((alarms + index)->armed)
+		PORTB &= ~dots[index];
+	else
+		PORTB |= dots[index];
+}
 
 inline uint8_t alarm_armed(uint8_t index)
 {
@@ -10,16 +19,19 @@ inline uint8_t alarm_armed(uint8_t index)
 inline void alarm_arm(uint8_t index)
 {
 	alarms[index].armed = 1;
+	alarm_dot(index);
 }
 
 inline void alarm_unarm(uint8_t index)
 {
 	alarms[index].armed = 0;
+	alarm_dot(index);
 }
 
 uint8_t alarm_flip_arm(uint8_t index)
 {
 	alarms[index].armed ^= 1;
+	alarm_dot(index);
 	return alarms[index].armed;
 }
 
@@ -62,21 +74,35 @@ static void alarm_default(alarm_t *alarm)
 	alarm->time.min = 0;
 }
 
+uint8_t alarm_check(time_t *time)
+{
+	uint8_t i;
+	for (i = 0; i < ALARM_COUNT; i++)
+	{
+		alarm_t *alarm = alarms + i;
+
+		if (!alarm->armed)
+			continue;
+
+		if (alarm->time.hour == time->hour && alarm->time.min == time->min)
+			return i + 1;
+	}
+	return 0;
+}
+
 void alarm_init()
 {
+	// DOTS
+	DDRB |= (1 << PB0) | (1 << PB6) | (1 << PB7);
+
 	uint8_t i;
 	for (i = 0; i < ALARM_COUNT; i++)
 	{
 		clock_open_alarm(i, &alarms[i]);
 
 		if (!alarm_verify(alarms + i))
-		{
 			alarm_default(alarms + i);
-		}
 
-		if (alarms[i].armed)
-			PORTD &= ~(1 << (5 + i));
-		else
-			PORTD |= (1 << (5 + i));
+		alarm_dot(i);
 	}
 }

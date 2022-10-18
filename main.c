@@ -66,8 +66,15 @@ state_t default_action()
 state_t update_time()
 {
 	clock_update_time(&time);
+	ringing = alarm_check(&time);
 	update_buf(main_screen.buf, time);
 	display_tick();
+
+	if (ringing)
+	{
+		display_blink(BLINK_BOTH);
+		return RINGING;
+	}
 	return state;
 }
 
@@ -136,13 +143,29 @@ state_t default_screen()
 	return IDLE;
 }
 
-#define TRANSITION_COUNT 13
+state_t dismiss()
+{
+	alarm_unarm(ringing - 1);
+	ringing = 0;
+	display_blink(BLINK_NONE);
+	return IDLE;
+}
+
+state_t arm()
+{
+	alarm_flip_arm(alarm_index);
+	return ALARM;
+}
+
+#define TRANSITION_COUNT 17
 transition_t transitions[TRANSITION_COUNT] = {
 	{IDLE, NONE, default_action},
 	{IDLE, TIME_UPDATE, update_time},
 	{IDLE, MODE_BTN, show_alarm},
 
 	{ALARM, MODE_BTN, edit_hour},
+	{ALARM, UP_BTN, arm},
+	{ALARM, DOWN_BTN, arm},
 
 	{ALARM_HOUR, UP_BTN, hour_change},
 	{ALARM_HOUR, DOWN_BTN, hour_change},
@@ -155,6 +178,9 @@ transition_t transitions[TRANSITION_COUNT] = {
 	{ALARM_MIN, TIMEOUT, default_screen},
 	{ALARM_HOUR, TIMEOUT, default_screen},
 	{ALARM, TIMEOUT, default_screen},
+
+	{RINGING, MODE_BTN, dismiss},
+	{RINGING, TIME_UPDATE, update_time},
 };
 
 void lookup_transition(state_t s, event_t e)
@@ -169,6 +195,17 @@ void lookup_transition(state_t s, event_t e)
 			event = NONE;
 		}
 	}
+}
+
+void ringer()
+{
+	if (!ringing)
+	{
+		PORTB &= ~(1 << PB1);
+		return;
+	}
+
+	PORTB ^= (1 << PB1);
 }
 
 void timeout()
@@ -230,11 +267,11 @@ int main()
 	alarm_init();
 
 	// BUZZ
-	DDRB |= (1 << PB0);
-	PORTB &= ~(1 << PB0);
+	DDRB |= (1 << PB1);
+	PORTB &= ~(1 << PB1);
 
 	timer_create(2, 7500, timeout);
-	// timer_create(3, 10, ringing_handler);
+	timer_create(3, 10, ringer);
 
 	sei();
 	while (1)

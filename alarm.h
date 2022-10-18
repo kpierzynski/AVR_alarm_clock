@@ -26,6 +26,7 @@ time_t alarm_get_time(uint8_t index);
 
 time_t alarm_update_time(uint8_t i, time_t t);
 
+uint8_t alarm_check(time_t *time);
 void alarm_sync();
 
 #endif
