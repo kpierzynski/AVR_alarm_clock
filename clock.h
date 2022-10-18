@@ -9,6 +9,7 @@
 
 void clock_init();
 void clock_update_time(time_t *time);
+void clock_save_time(time_t time);
 void clock_event();
 
 void clock_open_alarm(uint8_t index, alarm_t *alarm);

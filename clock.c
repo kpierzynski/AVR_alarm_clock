@@ -19,6 +19,10 @@ void clock_update_time(time_t *time)
 	ds1307_get_time(&time->hour, &time->min, &ss);
 }
 
+void clock_save_time(time_t time) {
+	ds1307_set_time(time.hour, time.min, 0);
+}
+
 void clock_init()
 {
 	i2c_init(100);

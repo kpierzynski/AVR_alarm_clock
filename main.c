@@ -27,7 +27,9 @@ typedef enum
 	ALARM,
 	ALARM_HOUR,
 	ALARM_MIN,
-	RINGING
+	RINGING,
+	TIME_HOUR,
+	TIME_MIN
 } state_t;
 state_t state = IDLE;
 
@@ -159,13 +161,36 @@ state_t arm()
 	return ALARM;
 }
 
-state_t change_time()
+state_t set_time_hour()
 {
+	display_blink(BLINK_HOUR);
+	return TIME_HOUR;
+}
 
+state_t set_time_min() {
+	display_blink(BLINK_MIN);
+	return TIME_MIN;
+}
+
+state_t change_time_hour() {
+	time.hour += (event == UP_BTN) ? 1 : -1;
+	time.hour = time.hour % 24;
+	return TIME_HOUR;
+}
+
+state_t change_time_min() {
+	time.min += (event == UP_BTN) ? 1 : -1;
+	time.min = time.min % 60;
+	return TIME_MIN;
+}
+
+state_t save_time() {
+	display_blink(BLINK_NONE);
+	clock_save_time(time);
 	return IDLE;
 }
 
-#define TRANSITION_COUNT 18
+#define TRANSITION_COUNT 24
 transition_t transitions[TRANSITION_COUNT] = {
 	{IDLE, NONE, default_action},
 	{IDLE, TIME_UPDATE, update_time},
@@ -190,7 +215,16 @@ transition_t transitions[TRANSITION_COUNT] = {
 	{RINGING, MODE_BTN, dismiss},
 	{RINGING, TIME_UPDATE, update_time},
 
-	{ALARM, TIME_CHANGE, change_time},
+	{ALARM, TIME_CHANGE, set_time_hour},
+	{TIME_HOUR, UP_BTN, change_time_hour},
+	{TIME_HOUR, DOWN_BTN, change_time_hour},
+
+	{TIME_HOUR, MODE_BTN, set_time_min },
+	{TIME_MIN, UP_BTN, change_time_min},
+	{TIME_MIN, DOWN_BTN, change_time_min},
+
+	{TIME_MIN, MODE_BTN, save_time}
+	
 };
 
 void lookup_transition(state_t s, event_t e)
