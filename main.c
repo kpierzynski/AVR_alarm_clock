@@ -38,6 +38,7 @@ typedef enum
 	UP_BTN,
 	DOWN_BTN,
 	TIME_UPDATE,
+	TIME_CHANGE,
 	TIMEOUT,
 } event_t;
 event_t event = NONE;
@@ -83,7 +84,7 @@ uint8_t alarm_index;
 state_t show_alarm()
 {
 	alarm_screen.buf[0] = NUM_A;
-	alarm_screen.buf[1] = alarm_index;
+	alarm_screen.buf[1] = alarm_index + 1; // + 1 Because there is no alarm number 0 according to humans...
 	alarm_screen.buf[2] = NUM_EMPTY;
 	alarm_screen.buf[3] = NUM_EMPTY;
 
@@ -136,6 +137,7 @@ state_t default_screen()
 	if (main_screen.is_enabled)
 		return state;
 
+	alarm_index = 0;
 	display_blink(BLINK_NONE);
 	display_set_screen(&main_screen);
 	alarm_sync();
@@ -157,7 +159,13 @@ state_t arm()
 	return ALARM;
 }
 
-#define TRANSITION_COUNT 17
+state_t change_time()
+{
+
+	return IDLE;
+}
+
+#define TRANSITION_COUNT 18
 transition_t transitions[TRANSITION_COUNT] = {
 	{IDLE, NONE, default_action},
 	{IDLE, TIME_UPDATE, update_time},
@@ -181,6 +189,8 @@ transition_t transitions[TRANSITION_COUNT] = {
 
 	{RINGING, MODE_BTN, dismiss},
 	{RINGING, TIME_UPDATE, update_time},
+
+	{ALARM, TIME_CHANGE, change_time},
 };
 
 void lookup_transition(state_t s, event_t e)
@@ -236,6 +246,11 @@ void clock_tick()
 	event = TIME_UPDATE;
 }
 
+void time_edit()
+{
+	event = TIME_CHANGE;
+}
+
 int main()
 {
 	// SOFT TIMERS
@@ -246,7 +261,7 @@ int main()
 
 	// BUTTONS
 	key_init();
-	button_t mode_btn = {&BTN_MODE_PIN, BTN_MODE, 2, mode_handler, NULL};
+	button_t mode_btn = {&BTN_MODE_PIN, BTN_MODE, 2, mode_handler, time_edit};
 	button_t up_btn = {&BTN_UP_PIN, BTN_UP, 2, up_handler, NULL};
 	button_t down_btn = {&BTN_DOWN_PIN, BTN_DOWN, 2, down_handler, NULL};
 
