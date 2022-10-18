@@ -4,7 +4,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
-#include "i2c.h"
+#include "protocols/i2c.h"
 
 /*
 	CONFIG SECTION
