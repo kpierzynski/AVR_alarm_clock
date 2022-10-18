@@ -24,7 +24,7 @@ uint8_t alarm_flip_arm(uint8_t index);
 
 time_t alarm_get_time(uint8_t index);
 
-void alarm_update_time(uint8_t i, time_t t);
+time_t alarm_update_time(uint8_t i, time_t t);
 
 void alarm_sync();
 

@@ -26,8 +26,7 @@
 #define NUM_D 0x0D
 #define NUM_E 0x0E
 #define NUM_F 0x0F
-#define NUM_DASH 0x10
-#define NUM_EMPTY 0x11
+#define NUM_EMPTY 0x10
 
 #define BLINK_NONE 0b0000
 #define BLINK_HOUR 0b0011

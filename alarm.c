@@ -28,10 +28,12 @@ inline time_t alarm_get_time(uint8_t index)
 	return alarms[index].time;
 }
 
-inline void alarm_update_time(uint8_t i, time_t t)
+time_t alarm_update_time(uint8_t i, time_t t)
 {
 	alarms[i].time.hour = modulo_positive(alarms[i].time.hour + t.hour, 24);
 	alarms[i].time.min = modulo_positive(alarms[i].time.min + t.min, 60);
+
+	return alarms[i].time;
 }
 
 void alarm_sync()

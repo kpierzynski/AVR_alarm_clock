@@ -15,7 +15,7 @@ typedef struct
 	uint8_t armed;
 } alarm_t;
 
-#define BTN_MODE (1 << PD0)
+#define BTN_MODE (1 << PD5)
 #define BTN_MODE_DDR DDRD
 #define BTN_MODE_PORT PORTD
 #define BTN_MODE_PIN PIND
@@ -25,7 +25,7 @@ typedef struct
 #define BTN_MODE_LOW BTN_MODE_PORT &= ~BTN_MODE
 #define BTN_MODE_STATE (BTN_MODE_PIN & BTN_MODE)
 
-#define BTN_UP (1 << PD3)
+#define BTN_UP (1 << PD6)
 #define BTN_UP_DDR DDRD
 #define BTN_UP_PORT PORTD
 #define BTN_UP_PIN PIND
@@ -35,7 +35,7 @@ typedef struct
 #define BTN_UP_LOW BTN_UP_PORT &= ~BTN_UP
 #define BTN_UP_STATE (BTN_UP_PIN & BTN_UP)
 
-#define BTN_DOWN (1 << PD4)
+#define BTN_DOWN (1 << PD7)
 #define BTN_DOWN_DDR DDRD
 #define BTN_DOWN_PORT PORTD
 #define BTN_DOWN_PIN PIND
