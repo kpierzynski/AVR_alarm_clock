@@ -38,6 +38,7 @@ typedef enum
 	UP_BTN,
 	DOWN_BTN,
 	TIME_UPDATE,
+	TIMEOUT,
 } event_t;
 event_t event = NONE;
 
@@ -123,18 +124,37 @@ state_t min_change()
 	return ALARM_MIN;
 }
 
-#define TRANSITION_COUNT 10
+state_t default_screen()
+{
+	if (main_screen.is_enabled)
+		return state;
+
+	display_blink(BLINK_NONE);
+	display_set_screen(&main_screen);
+	alarm_sync();
+
+	return IDLE;
+}
+
+#define TRANSITION_COUNT 13
 transition_t transitions[TRANSITION_COUNT] = {
 	{IDLE, NONE, default_action},
 	{IDLE, TIME_UPDATE, update_time},
 	{IDLE, MODE_BTN, show_alarm},
+
 	{ALARM, MODE_BTN, edit_hour},
+
 	{ALARM_HOUR, UP_BTN, hour_change},
 	{ALARM_HOUR, DOWN_BTN, hour_change},
 	{ALARM_HOUR, MODE_BTN, edit_min},
+
 	{ALARM_MIN, UP_BTN, min_change},
 	{ALARM_MIN, DOWN_BTN, min_change},
 	{ALARM_MIN, MODE_BTN, loop},
+
+	{ALARM_MIN, TIMEOUT, default_screen},
+	{ALARM_HOUR, TIMEOUT, default_screen},
+	{ALARM, TIMEOUT, default_screen},
 };
 
 void lookup_transition(state_t s, event_t e)
@@ -151,18 +171,26 @@ void lookup_transition(state_t s, event_t e)
 	}
 }
 
+void timeout()
+{
+	event = TIMEOUT;
+}
+
 void mode_handler()
 {
+	timer_interval(2, 7500);
 	event = MODE_BTN;
 }
 
 void up_handler()
 {
+	timer_interval(2, 7500);
 	event = UP_BTN;
 }
 
 void down_handler()
 {
+	timer_interval(2, 7500);
 	event = DOWN_BTN;
 }
 
@@ -202,10 +230,10 @@ int main()
 	alarm_init();
 
 	// BUZZ
-	// DDRD |= (1 << PD1);
-	// PORTD &= ~(1 << PD1);
+	DDRB |= (1 << PB0);
+	PORTB &= ~(1 << PB0);
 
-	// timer_create(2, 7500, reset_screen);
+	timer_create(2, 7500, timeout);
 	// timer_create(3, 10, ringing_handler);
 
 	sei();
