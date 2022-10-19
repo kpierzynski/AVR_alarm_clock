@@ -1,8 +1,8 @@
 #ifndef __ALARM_H_
 #define __ALARM_H_
 
-#include "clock.h"
 #include "common.h"
+#include "clock.h"
 #include "util/modulo.h"
 
 #include <stdint.h>

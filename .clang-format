@@ -24,7 +24,7 @@ KeepEmptyLinesAtTheStartOfBlocks: 'false'
 MaxEmptyLinesToKeep: '1'
 PointerAlignment: Middle
 ReflowComments: 'true'
-SortIncludes: 'true'
+SortIncludes: 'false'
 SpaceAfterCStyleCast: 'false'
 SpaceAfterLogicalNot: 'false'
 SpaceAfterTemplateKeyword: 'false'
