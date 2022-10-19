@@ -6,6 +6,8 @@
 
 #define MAX_TIMER_COUNT 4
 
+volatile uint16_t TimerButton;
+
 typedef struct
 {
 	volatile uint16_t cnt;

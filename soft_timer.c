@@ -1,5 +1,6 @@
 #include "soft_timer.h"
 
+volatile uint16_t TimerButton;
 timer_t timers[MAX_TIMER_COUNT];
 
 static void timer_process(timer_t *t)
@@ -52,6 +53,10 @@ void timer_init()
 ISR(TIMER2_COMPA_vect)
 {
 	uint16_t n;
+
+	n = TimerButton;
+	if (n)
+		TimerButton = --n;
 
 	for (uint8_t i = 0; i < MAX_TIMER_COUNT; i++)
 	{

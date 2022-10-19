@@ -22,23 +22,22 @@ void key_press(button_t *btn)
 		if (btn->kfun1)
 			btn->kfun1();
 		btn->flag = 1;
-		timer_interval(0, (btn->wait_time_s * 1000) / 10);
+		TimerButton = (btn->wait_time_s * 1000) / 10;
 	}
 	else if (btn->klock && key_press)
 	{
 		(btn->klock)++;
 		if (!btn->klock)
 		{
-			timer_interval(0, 0);
+			TimerButton = 0;
 			btn->flag = 0;
 		}
 	}
-	else if (btn->flag && flag)
+	else if (btn->flag && !TimerButton)
 	{
 		// reakcja na dłuższe wcinięcie klawisza
 		if (btn->kfun2)
 			btn->kfun2();
 		btn->flag = 0;
-		flag = 0;
 	}
 }

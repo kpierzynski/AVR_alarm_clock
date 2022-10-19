@@ -78,7 +78,11 @@ state_t update_time()
 		display_blink(BLINK_BOTH);
 		return RINGING;
 	}
-	return state;
+	else
+	{
+		display_blink(BLINK_NONE);
+		return state;
+	}
 }
 
 uint8_t alarm_index;
@@ -164,27 +168,35 @@ state_t arm()
 state_t set_time_hour()
 {
 	display_blink(BLINK_HOUR);
+	display_set_screen(&main_screen);
+	update_buf(main_screen.buf, time);
 	return TIME_HOUR;
 }
 
-state_t set_time_min() {
+state_t set_time_min()
+{
 	display_blink(BLINK_MIN);
 	return TIME_MIN;
 }
 
-state_t change_time_hour() {
+state_t change_time_hour()
+{
 	time.hour += (event == UP_BTN) ? 1 : -1;
 	time.hour = time.hour % 24;
+	update_buf(main_screen.buf, time);
 	return TIME_HOUR;
 }
 
-state_t change_time_min() {
+state_t change_time_min()
+{
 	time.min += (event == UP_BTN) ? 1 : -1;
 	time.min = time.min % 60;
+	update_buf(main_screen.buf, time);
 	return TIME_MIN;
 }
 
-state_t save_time() {
+state_t save_time()
+{
 	display_blink(BLINK_NONE);
 	clock_save_time(time);
 	return IDLE;
@@ -219,12 +231,12 @@ transition_t transitions[TRANSITION_COUNT] = {
 	{TIME_HOUR, UP_BTN, change_time_hour},
 	{TIME_HOUR, DOWN_BTN, change_time_hour},
 
-	{TIME_HOUR, MODE_BTN, set_time_min },
+	{TIME_HOUR, MODE_BTN, set_time_min},
 	{TIME_MIN, UP_BTN, change_time_min},
 	{TIME_MIN, DOWN_BTN, change_time_min},
 
 	{TIME_MIN, MODE_BTN, save_time}
-	
+
 };
 
 void lookup_transition(state_t s, event_t e)
@@ -295,9 +307,9 @@ int main()
 
 	// BUTTONS
 	key_init();
-	button_t mode_btn = {&BTN_MODE_PIN, BTN_MODE, 2, mode_handler, time_edit};
-	button_t up_btn = {&BTN_UP_PIN, BTN_UP, 2, up_handler, NULL};
-	button_t down_btn = {&BTN_DOWN_PIN, BTN_DOWN, 2, down_handler, NULL};
+	button_t mode_btn = {&BTN_MODE_PIN, BTN_MODE, 3, mode_handler, time_edit};
+	button_t up_btn = {&BTN_UP_PIN, BTN_UP, 0, up_handler, NULL};
+	button_t down_btn = {&BTN_DOWN_PIN, BTN_DOWN, 0, down_handler, NULL};
 
 	BTN_MODE_IN;
 	BTN_MODE_HIGH;
