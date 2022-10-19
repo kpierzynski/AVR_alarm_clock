@@ -16,7 +16,7 @@ SRCS= $(shell find $(SRC_DIRS) -name '*.c')
 OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 
 $(BUILD_DIR)/${TARGET}: $(OBJS)
-	${CC} ${OBJS} -o $@.bin
+	${CC} ${CFLAGS} ${OBJS} -o $@.bin
 	${OBJCOPY} -j .text -j .data -O ihex $@.bin $@.hex
 	avr-size --mcu=${MCU} -C $@.bin
 
