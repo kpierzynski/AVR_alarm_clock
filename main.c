@@ -90,6 +90,7 @@ state_t show_alarm() {
 
 state_t loop() {
 	alarm_index = ( alarm_index + 1 ) % ALARM_COUNT;
+	// TODO: there should not be call to show_alarm
 	return show_alarm();
 }
 
@@ -101,6 +102,7 @@ state_t edit_hour() {
 	return ALARM_HOUR;
 }
 
+// TODO: hour_change and min_change should merge
 state_t hour_change() {
 	time_t t = { ( event == UP_BTN ) ? 1 : -1, 0 };
 	t = alarm_update_time( alarm_index, t );
@@ -240,6 +242,7 @@ void timeout() {
 	event = TIMEOUT;
 }
 
+// TODO: reseting timer should be inline function
 void mode_handler() {
 	timer_interval( 2, 7500 );
 	event = MODE_BTN;
