@@ -5,7 +5,7 @@ then
   exit 1
 fi
 
-find . \( -name '*.c' -o -name '*.h' \) -exec clang -i {} -style=file:.clang-format \;
+find . \( -name '*.c' -o -name '*.h' \) -exec clang-format -i {} -style=file:.clang-format \;
 
 for STAGED in $(git diff --name-only --cached) 
 do
